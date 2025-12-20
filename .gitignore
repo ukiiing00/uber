@@ -42,3 +42,6 @@ backend/.nyc_output/
 # OS
 Thumbs.db
 
+# env
+backend/.dev.env
+backend/.test.env

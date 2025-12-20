@@ -5,13 +5,13 @@ services:
     image: postgres:15-alpine
     container_name: uber-postgres
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=uber
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-uber}
       - POSTGRES_HOST_AUTH_METHOD=md5
     restart: unless-stopped
     healthcheck:
@@ -26,17 +26,19 @@ services:
       dockerfile: Dockerfile
     container_name: uber-backend
     ports:
-      - "3001:3000"
+      - "${BACKEND_PORT:-3001}:3000"
     volumes:
       - ./backend:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV:-development}
       - DATABASE_HOST=postgres
       - DATABASE_PORT=5432
-      - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=postgres
-      - DATABASE_NAME=uber
+      - DATABASE_USER=${POSTGRES_USER:-postgres}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DATABASE_NAME=${POSTGRES_DB:-uber}
+      - SECRET_KEY=${SECRET_KEY:-5J3GRKMPIVyxTysVCn3tPKeznaVnsGmr}
+
     depends_on:
       postgres:
         condition: service_healthy

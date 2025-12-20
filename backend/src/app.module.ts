@@ -1,8 +1,17 @@
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { join } from 'path';
 import { RestaurantsModule } from './restaurants/restaurants.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
+import * as Joi from 'joi';
+import { Restaurant } from './restaurants/entities/restaurant.entity';
+import { UsersModule } from './users/users.module';
+import { CommonModule } from './common/common.module';
+import { User } from './users/entities/user.entity';
+import { JwtModule } from './jwt/jwt.module';
+
+
 
 @Module({
   imports: [GraphQLModule.forRoot<ApolloDriverConfig>(
@@ -11,7 +20,36 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
       autoSchemaFile: true,
       graphiql: true,
     }
-  ), RestaurantsModule],
+  ),
+  ConfigModule.forRoot({
+    isGlobal: true,
+    envFilePath: process.env.NODE_ENV === 'development' ? '.env.dev' : '.env.test',
+    ignoreEnvFile: process.env.NODE_ENV === 'production',
+    validationSchema: Joi.object({
+      NODE_ENV: Joi.string().valid('development', 'production').required(),
+      DATABASE_HOST: Joi.string().required(),
+      DATABASE_PORT: Joi.number().required(),
+      DATABASE_USER: Joi.string().required(),
+      DATABASE_PASSWORD: Joi.string().required(),
+      DATABASE_NAME: Joi.string().required(),
+      SECRET_KEY: Joi.string().required(),
+    }),
+  }),
+  TypeOrmModule.forRoot({
+    type: 'postgres',
+    host: process.env.DATABASE_HOST,
+    port: parseInt(process.env.DATABASE_PORT!),
+    username: process.env.DATABASE_USER,
+    password: process.env.DATABASE_PASSWORD,
+    database: process.env.DATABASE_NAME,
+    synchronize: process.env.NODE_ENV !== 'production', // tables will be created automatically
+    logging: true, // logs will be shown in the console
+    entities: [Restaurant, User],
+  }),
+   RestaurantsModule,
+   UsersModule,
+   CommonModule,
+   JwtModule],
   controllers: [],
   providers: [],
 })

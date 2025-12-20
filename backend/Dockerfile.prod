@@ -19,6 +19,6 @@ RUN npm run build
 # 포트 노출
 EXPOSE 3000
 
-# 개발 모드로 실행 (docker-compose.yml에서 오버라이드 가능)
-CMD ["npm", "run", "start:dev"]
+# 프로덕션 모드로 실행
+CMD ["npm", "run", "start:prod"]
 
