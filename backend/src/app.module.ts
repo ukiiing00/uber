@@ -12,9 +12,9 @@ import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 
 
-
 @Module({
-  imports: [GraphQLModule.forRoot<ApolloDriverConfig>(
+  imports: [
+  GraphQLModule.forRoot<ApolloDriverConfig>(
     {
       driver: ApolloDriver,
       autoSchemaFile: true,
@@ -32,7 +32,7 @@ import { JwtModule } from './jwt/jwt.module';
       DATABASE_USER: Joi.string().required(),
       DATABASE_PASSWORD: Joi.string().required(),
       DATABASE_NAME: Joi.string().required(),
-      SECRET_KEY: Joi.string().required(),
+      PRIVATE_KEY: Joi.string().required(),
     }),
   }),
   TypeOrmModule.forRoot({
@@ -49,7 +49,9 @@ import { JwtModule } from './jwt/jwt.module';
    RestaurantsModule,
    UsersModule,
    CommonModule,
-   JwtModule],
+   JwtModule.forRoot({
+    privateKey: process.env.PRIVATE_KEY!,
+   })],
   controllers: [],
   providers: [],
 })
