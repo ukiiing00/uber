@@ -38,6 +38,9 @@ services:
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - DATABASE_NAME=${POSTGRES_DB:-uber}
       - PRIVATE_KEY=${PRIVATE_KEY:-5J3GRKMPIVyxTysVCn3tPKeznaVnsGmr}
+      - MAILGUN_API_KEY=${MAILGUN_API_KEY:-a4940c2a8c4fd28bb9abbc15a8784aa7-df55650e-57745318}
+      - MAILGUN_DOMAIN=${MAILGUN_DOMAIN:-sandbox93a2774e692543ef984ec9714ce49028.mailgun.org}
+      - MAILGUN_FROM_EMAIL=${MAILGUN_FROM_EMAIL:-ukiiing@askstory.com}
 
     depends_on:
       postgres:

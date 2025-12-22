@@ -12,6 +12,8 @@ import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
 import { AuthModule } from './auth/auth.module';
+import { Verification } from './users/entities/verification.entity';
+import { MailModule } from './mail/mail.module';
 
 
 @Module({
@@ -36,6 +38,9 @@ import { AuthModule } from './auth/auth.module';
       DATABASE_PASSWORD: Joi.string().required(),
       DATABASE_NAME: Joi.string().required(),
       PRIVATE_KEY: Joi.string().required(),
+      MAILGUN_API_KEY: Joi.string().required(),
+      MAILGUN_DOMAIN: Joi.string().required(),
+      MAILGUN_FROM_EMAIL: Joi.string().required(),
     }),
   }),
   TypeOrmModule.forRoot({
@@ -47,14 +52,19 @@ import { AuthModule } from './auth/auth.module';
     database: process.env.DATABASE_NAME,
     synchronize: process.env.NODE_ENV !== 'production', // tables will be created automatically
     logging: true, // logs will be shown in the console
-    entities: [Restaurant, User],
+    entities: [Restaurant, User, Verification],
   }),
    RestaurantsModule,
    UsersModule,
    JwtModule.forRoot({
     privateKey: process.env.PRIVATE_KEY!,
    }),
-   AuthModule],
+   AuthModule,
+   MailModule.forRoot({
+    apiKey: process.env.MAILGUN_API_KEY!,
+    domain: process.env.MAILGUN_DOMAIN!,
+    fromEmail: process.env.MAILGUN_FROM_EMAIL!,
+   })],
   controllers: [],
   providers: [],
 })

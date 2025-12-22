@@ -4,17 +4,22 @@ import { Repository } from "typeorm";
 import { User } from "./entities/user.entity";
 import { CreateAccountInput, CreateAccountOutput } from "./dto/create-account.dto";
 import { LoginInput, LoginOutput } from "./dto/login.dto";
-import * as jwt from 'jsonwebtoken';
-import { ConfigService } from "@nestjs/config";
 import { JwtService } from "src/jwt/jwt.service";
-import { EditProfileInput, EditProfileOutput } from "./dto/edit-profile.dto";
+import { EditProfileInput } from "./dto/edit-profile.dto";
+import { Verification } from "./entities/verification.entity";
+import { VerifyEmailOutput } from "./dto/verify-email.dto";
+import { UserProfileOutput } from "./dto/user-profile.dto";
+import { MailService } from "src/mail/mail.service";
 
 @Injectable()
 export class UsersService {
     constructor(
         @InjectRepository(User)
         private readonly users: Repository<User>,
-        private readonly jwtService: JwtService
+        @InjectRepository(Verification)
+        private readonly verifications: Repository<Verification>,
+        private readonly jwtService: JwtService,
+        private readonly mailService: MailService
     ) {   }
 
     async createAccount({email, password, role}: CreateAccountInput): Promise<CreateAccountOutput> {
@@ -25,6 +30,11 @@ export class UsersService {
             }
             const user = this.users.create({ email, password, role });
             await this.users.save(user);
+            const verification = this.verifications.create({
+                user: user,
+            });
+            await this.verifications.save(verification);
+            this.mailService.sendVerificationEmail(email, verification.code);
             return { ok: true };
         } catch (error) {
             return { ok: false, error: 'Could not create account.' };
@@ -33,11 +43,12 @@ export class UsersService {
 
     async login({email, password}: LoginInput): Promise<LoginOutput> {
         try {
-            const user = await this.users.findOne({ where: { email } });
+            const user = await this.users.findOne({ where: { email }, select: ['id', 'password'] });
             if (!user) {
                 return { ok: false, error: 'User not found' };
             }
             const passwordCorrect = await user.checkPassword(password);
+            console.log(passwordCorrect);
             if (!passwordCorrect) {
                 return { ok: false, error: 'Wrong password' };
             }
@@ -50,15 +61,43 @@ export class UsersService {
         }
     }
     
-    async findById(id: number): Promise<User | null> {
-        return  this.users.findOne({ where: { id } });
+    async findById(id: number): Promise<UserProfileOutput> {
+        try {
+            const user = await this.users.findOne({ where: { id } });
+            if (!user) {
+                return { ok: false, error: 'User not found' };
+            }
+            return { ok: true, user };
+        } catch (error) {
+            return { ok: false, error: 'Could not find user.' };
+        }
     }
 
-    async editProfile(userId: number, editProfileInput: EditProfileInput) {
+    async editProfile(userId: number, editProfileInput: EditProfileInput): Promise<User> {
         const user = await this.users.findOne({ where: { id: userId } });
         if (!user) {
             throw new Error('User not found');
         }
-        return this.users.save(this.users.merge(user, {...editProfileInput}));
+        if (editProfileInput.email) {
+            user.verified = false;
+            const verification = this.verifications.create({
+                user: user,
+            });
+            await this.verifications.save(verification);
+            this.mailService.sendVerificationEmail(user.email, verification.code);
+        }
+        const updatedUser = this.users.merge(user, {...editProfileInput});
+        return this.users.save(updatedUser);
+    }
+
+    async verifyEmail(code: string): Promise<VerifyEmailOutput> {
+        const verification = await this.verifications.findOne({ where: { code } , relations: ['user'] });
+        if (!verification) {
+            return { ok: false, error: 'Verification not found.' };
+        }
+        verification.user.verified = true;
+        await this.verifications.save(verification);
+        await this.verifications.delete({id: verification.id});
+        return { ok: true };
     }
 }
