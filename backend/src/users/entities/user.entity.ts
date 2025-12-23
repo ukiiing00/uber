@@ -6,8 +6,8 @@ import { InternalServerErrorException } from "@nestjs/common";
 import { IsEmail } from "class-validator";
 
 enum UserRole {
-    Client ,
-    Owner ,
+    Client,
+    Owner,
     Delivery,
 }
 
