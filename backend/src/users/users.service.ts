@@ -34,7 +34,7 @@ export class UsersService {
                 user: user,
             });
             await this.verifications.save(verification);
-            this.mailService.sendVerificationEmail(email, verification.code);
+            // this.mailService.sendVerificationEmail(email, verification.code);
             return { ok: true };
         } catch (error) {
             return { ok: false, error: 'Could not create account.' };
@@ -74,17 +74,28 @@ export class UsersService {
     }
 
     async editProfile(userId: number, editProfileInput: EditProfileInput): Promise<User> {
+        console.log( 'userId', userId);
         const user = await this.users.findOne({ where: { id: userId } });
+        console.log( 'user', user);
         if (!user) {
             throw new Error('User not found');
         }
         if (editProfileInput.email) {
+            user.email = editProfileInput.email;
             user.verified = false;
+            
+            // 기존 verification 삭제
+            await this.verifications.delete({ user: { id: user.id } });
+            
+            // 새로운 verification 생성
             const verification = this.verifications.create({
                 user: user,
             });
             await this.verifications.save(verification);
-            this.mailService.sendVerificationEmail(user.email, verification.code);
+            // this.mailService.sendVerificationEmail(user.email, verification.code);
+        }
+        if (editProfileInput.password) {
+            user.password = editProfileInput.password;
         }
         const updatedUser = this.users.merge(user, {...editProfileInput});
         return this.users.save(updatedUser);
@@ -96,7 +107,7 @@ export class UsersService {
             return { ok: false, error: 'Verification not found.' };
         }
         verification.user.verified = true;
-        await this.verifications.save(verification);
+        await this.users.save(verification.user);
         await this.verifications.delete({id: verification.id});
         return { ok: true };
     }

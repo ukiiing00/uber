@@ -3,6 +3,7 @@ import { CoreEntity } from "src/common/entities/core.entity";
 import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from "@nestjs/common";
+import { IsEmail } from "class-validator";
 
 enum UserRole {
     Client = 'client',
@@ -21,6 +22,7 @@ export class User extends CoreEntity {
 
     @Column()
     @Field(() => String)
+    @IsEmail()
     email: string;
 
     @Column({ select: false })
