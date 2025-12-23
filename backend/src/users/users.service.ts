@@ -25,6 +25,7 @@ export class UsersService {
     async createAccount({email, password, role}: CreateAccountInput): Promise<CreateAccountOutput> {
         try {
             const exists = await this.users.findOne({ where: { email } });
+            console.log(exists);
             if (exists) {
                 return { ok: false, error: 'There is a user with that email already' };
             }
@@ -33,8 +34,8 @@ export class UsersService {
             const verification = this.verifications.create({
                 user: user,
             });
-            await this.verifications.save(verification);
-            // this.mailService.sendVerificationEmail(email, verification.code);
+            const savedVerification = await this.verifications.save(verification);
+            this.mailService.sendVerificationEmail(email, savedVerification.code);
             return { ok: true };
         } catch (error) {
             return { ok: false, error: 'Could not create account.' };
@@ -69,14 +70,12 @@ export class UsersService {
             }
             return { ok: true, user };
         } catch (error) {
-            return { ok: false, error: 'Could not find user.' };
+            return { ok: false, error : error.message };
         }
     }
 
     async editProfile(userId: number, editProfileInput: EditProfileInput): Promise<User> {
-        console.log( 'userId', userId);
         const user = await this.users.findOne({ where: { id: userId } });
-        console.log( 'user', user);
         if (!user) {
             throw new Error('User not found');
         }

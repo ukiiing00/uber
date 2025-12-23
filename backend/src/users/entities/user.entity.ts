@@ -6,9 +6,9 @@ import { InternalServerErrorException } from "@nestjs/common";
 import { IsEmail } from "class-validator";
 
 enum UserRole {
-    Client = 'client',
-    Owner = 'owner',
-    Delivery = 'delivery',
+    Client ,
+    Owner ,
+    Delivery,
 }
 
 registerEnumType(UserRole, {
