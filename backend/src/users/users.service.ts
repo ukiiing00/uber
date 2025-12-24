@@ -80,18 +80,20 @@ export class UsersService {
             return { ok: false, error: 'User not found' };
         }
         
-        // email 변경 시 verification 재생성
+        // email 변경 시 재 인증 이메일 발송
         if (editProfileInput.email) {
+            user.email = editProfileInput.email;
             user.verified = false;
             await this.verifications.delete({ user: { id: user.id } });
             const verification = this.verifications.create({ user });
             await this.verifications.save(verification);
-            await this.mailService.sendVerificationEmail(editProfileInput.email, verification.code);
+            await this.mailService.sendVerificationEmail(verification.user.email, verification.code);
         }
         
-        // 모든 필드를 merge로 업데이트 (email, password 포함)
-        const mergedUser = this.users.merge(user, editProfileInput);
-        await this.users.save(mergedUser);
+        if (editProfileInput.password) {
+            user.password = editProfileInput.password;
+        }
+        await this.users.save(user);
         return { ok: true };
        } catch (error) {
         return { ok: false, error: error.message };
@@ -99,6 +101,8 @@ export class UsersService {
     }
 
     async verifyEmail(code: string): Promise<VerifyEmailOutput> {
+        
+        try {   
         const verification = await this.verifications.findOne({ where: { code } , relations: ['user'] });
         if (!verification) {
             return { ok: false, error: 'Verification not found.' };
@@ -107,5 +111,8 @@ export class UsersService {
         await this.users.save(verification.user);
         await this.verifications.delete({id: verification.id});
         return { ok: true };
+        } catch (error) {
+            return { ok: false, error: "Could not find verification." };
+        }
     }
 }

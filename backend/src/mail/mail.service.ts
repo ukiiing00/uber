@@ -11,7 +11,7 @@ export class MailService {
     ) {
     }
 
-    private async sendEmail(subject: string, template: string, emailVars: EmailVar[]) {
+    async sendEmail(subject: string, template: string, emailVars: EmailVar[]) {
         const form = new FormData();
         form.append('from', `Mailgun Sandbox <postmaster@${this.options.domain}>`);
         form.append('to', `${this.options.fromEmail}`);
