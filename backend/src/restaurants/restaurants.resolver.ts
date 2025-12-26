@@ -1,35 +1,29 @@
 import { Args, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { Restaurant } from "./entities/restaurant.entity";
-import { CreateRestaurantDto } from "./dto/create-restaurant.dto";
+import { CreateRestaurantInput, CreateRestaurantOutput } from "./dto/create-restaurant.dto";
 import { RestaurantsService } from "./restaurants.service";
-import { UpdateRestaurantDto } from "./dto/update-restaurant.dto";
+import { AuthUser } from "src/auth/auth-user.decorator";
+import { User } from "src/users/entities/user.entity";
+import { Role } from "src/auth/role.decorator";
+import { EditRestaurantInput, EditRestaurantOutput } from "./dto/edit-restaurant.dto";
 
 @Resolver(() => Restaurant)
 export class RestaurantsResolver {
     constructor(private readonly restaurantsService: RestaurantsService) {}
-    @Query(() => [Restaurant])
-    restaurants(): Promise<Restaurant[]> {
-        return this.restaurantsService.getAll();
-    }
-    @Mutation(() => Boolean)
-    async createRestaurant(@Args('input') createRestaurantDto: CreateRestaurantDto,): Promise<boolean> {
-        try {
-            await this.restaurantsService.createRestaurant(createRestaurantDto);
-            return true;
-        }catch (error) {
-            console.log(error);
-            return false;
-        }
-    }
-    @Mutation(() => Boolean)
-    async updateRestaurant(@Args('input') updateRestaurantDto: UpdateRestaurantDto) {
-    try {
-        await this.restaurantsService.updateRestuarant(updateRestaurantDto);
-        return true;
-    }catch (error) {
-        console.log(error);
-        return false;
-    }
+    @Mutation(() => CreateRestaurantOutput)
+    @Role(['Owner'])
+    createRestaurant(
+        @AuthUser() authUser: User,
+        @Args('input') createRestaurantInput: CreateRestaurantInput,): Promise<CreateRestaurantOutput> {
+        return this.restaurantsService.createRestaurant(authUser, createRestaurantInput); 
     }
 
+    @Mutation(() => EditRestaurantOutput)
+    @Role(['Owner'])
+    editRestaurant(
+        @AuthUser() authUser: User,
+        @Args('input') editRestaurantInput: EditRestaurantInput,
+    ) {
+        return {ok: true}
+    }
 }

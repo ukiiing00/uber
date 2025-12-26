@@ -14,6 +14,7 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
 import { AuthModule } from './auth/auth.module';
 import { Verification } from './users/entities/verification.entity';
 import { MailModule } from './mail/mail.module';
+import { Category } from './restaurants/entities/category.entity';
 
 
 @Module({
@@ -52,19 +53,20 @@ import { MailModule } from './mail/mail.module';
     database: process.env.DATABASE_NAME,
     synchronize: process.env.NODE_ENV !== 'production', // tables will be created automatically
     logging: true, // logs will be shown in the console
-    entities: [Restaurant, User, Verification],
+    entities: [Restaurant, User, Verification, Category],
   }),
-   RestaurantsModule,
-   UsersModule,
-   JwtModule.forRoot({
+  JwtModule.forRoot({
     privateKey: process.env.PRIVATE_KEY!,
-   }),
-   AuthModule,
-   MailModule.forRoot({
+  }),
+  MailModule.forRoot({
     apiKey: process.env.MAILGUN_API_KEY!,
     domain: process.env.MAILGUN_DOMAIN!,
     fromEmail: process.env.MAILGUN_FROM_EMAIL!,
-   })],
+   }),
+  AuthModule,
+  UsersModule,
+  RestaurantsModule,
+  ],
   controllers: [],
   providers: [],
 })
