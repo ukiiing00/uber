@@ -3,27 +3,27 @@ import { JwtService } from './jwt.service';
 import { CONFIG_OPTIONS } from 'src/common/common.contants';
 import * as jwt from 'jsonwebtoken';
 
-
-
 const TEST_KEY = 'testPrivateKey';
 
 jest.mock('jsonwebtoken', () => ({
-  sign: jest.fn(() => "TOKEN"),
+  sign: jest.fn(() => 'TOKEN'),
   verify: jest.fn(() => ({ id: 1 })),
 }));
-
 
 describe('JwtService', () => {
   let service: JwtService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [JwtService,{
-        provide: CONFIG_OPTIONS,
-        useValue: {
-          privateKey: TEST_KEY,
+      providers: [
+        JwtService,
+        {
+          provide: CONFIG_OPTIONS,
+          useValue: {
+            privateKey: TEST_KEY,
+          },
         },
-      },],
+      ],
     }).compile();
 
     service = module.get<JwtService>(JwtService);
@@ -49,5 +49,4 @@ describe('JwtService', () => {
       expect(jwt.verify).toHaveBeenCalledWith('TOKEN', TEST_KEY);
     });
   });
-
 });
