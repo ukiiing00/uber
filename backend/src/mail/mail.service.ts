@@ -17,20 +17,20 @@ export class MailService {
     form.append('subject', subject);
     form.append('template', template);
     emailVars.forEach((eVar) => form.append(`v:${eVar.key}`, eVar.value));
-    try {
-      await axios.post(
-        `https://api.mailgun.net/v3/${this.options.domain}/messages`,
-        form,
-        {
-          headers: {
-            ...form.getHeaders(),
-            Authorization: `Basic ${Buffer.from(`api:${this.options.apiKey}`).toString('base64')}`,
-          },
-        },
-      );
-    } catch (error) {
-      console.error('Failed to send email:', error);
-    }
+    // try {
+    //   await axios.post(
+    //     `https://api.mailgun.net/v3/${this.options.domain}/messages`,
+    //     form,
+    //     {
+    //       headers: {
+    //         ...form.getHeaders(),
+    //         Authorization: `Basic ${Buffer.from(`api:${this.options.apiKey}`).toString('base64')}`,
+    //       },
+    //     },
+    //   );
+    // } catch (error) {
+    //   console.error('Failed to send email:', error);
+    // }
   }
 
   sendVerificationEmail(email: string, code: string) {

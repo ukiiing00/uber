@@ -264,6 +264,96 @@ async editRestaurant(authUser: User, restaurantId: number) {
 3. **명시성**: 코드에서 ID 필드가 명확히 보임
 4. **타입 안정성**: TypeScript에서 `ownerId`가 명확한 타입으로 정의됨
 
+### ⚠️ 중요: @RelationId는 "가상 프로퍼티"
+
+**@RelationId의 정확한 동작 방식:**
+
+1. **데이터베이스 레벨**: `ownerId` 컬럼은 실제로 존재합니다 (Foreign Key)
+2. **TypeORM 레벨**: `@RelationId`는 그 FK 컬럼 값을 TypeScript 코드에서 접근할 수 있게 매핑
+3. **"가상"의 의미**: TypeORM의 추상화 레벨에서는 가상 프로퍼티로 취급됨
+
+```typescript
+@Entity()
+export class Restaurant {
+  @ManyToOne(() => User)
+  owner: User;
+  
+  @RelationId((restaurant: Restaurant) => restaurant.owner)
+  ownerId: number;  // ← TypeORM이 DB의 FK 컬럼을 매핑
+}
+```
+
+**실제 PostgreSQL 테이블:**
+```sql
+CREATE TABLE restaurant (
+  id INTEGER PRIMARY KEY,
+  name VARCHAR,
+  ownerId INTEGER,  -- ← 실제 컬럼 (자동 생성)
+  FOREIGN KEY (ownerId) REFERENCES user(id)
+);
+```
+
+**언제 값이 채워지나?**
+- ❌ 서버 시작 시 생성되는 것이 아님
+- ✅ 엔티티를 DB에서 조회할 때마다 자동으로 매핑됨
+
+```typescript
+// 1. DB에서 조회 시
+const restaurant = await repo.findOne({ where: { id: 1 } });
+// TypeORM이 SELECT 결과의 ownerId 컬럼 값을 자동으로 매핑
+console.log(restaurant.ownerId);  // 10
+
+// 2. 새로 생성 시
+const newRestaurant = repo.create({ name: 'Pizza' });
+newRestaurant.owner = someUser;  // User 객체 할당
+await repo.save(newRestaurant);
+// 저장 후 newRestaurant.ownerId에 자동으로 someUser.id가 설정됨
+
+// 3. 직접 할당도 가능
+const restaurant = new Restaurant();
+restaurant.ownerId = 5;  // FK 값 직접 할당
+await repo.save(restaurant);
+```
+
+### 🚨 제약사항: where 절에서 사용 불가
+
+`@RelationId`는 TypeORM의 일반 `where` 절에서 직접 사용할 수 없습니다:
+
+```typescript
+// ❌ 작동하지 않음
+await this.restaurant.count({ 
+  where: { ownerId: 5 } 
+});
+// Error: Property "ownerId" was not found in "Restaurant"
+
+// ✅ 방법 1: 관계를 통한 접근
+await this.restaurant.count({ 
+  where: { owner: { id: 5 } } 
+});
+
+// ✅ 방법 2: QueryBuilder 사용 (실제 컬럼 이름 사용)
+await this.restaurant
+  .createQueryBuilder('restaurant')
+  .where('restaurant.ownerId = :ownerId', { ownerId: 5 })
+  .getCount();
+```
+
+**왜 where 절에서 안 될까?**
+- TypeORM의 `find()`, `findOne()` 등은 **엔티티 프로퍼티 기반**으로 동작
+- `@RelationId`는 TypeORM의 추상화 레벨에서 가상 프로퍼티로 취급
+- QueryBuilder는 **실제 SQL 컬럼 이름**을 직접 사용하므로 가능
+
+### 비교: 실제 컬럼 vs @RelationId 프로퍼티
+
+| 구분 | **실제 DB 컬럼** | **@RelationId 프로퍼티** |
+|------|------------------|-------------------------|
+| **생성 주체** | TypeORM의 `@ManyToOne` | TypeScript 매핑 |
+| **저장 위치** | PostgreSQL 테이블 | 메모리 (조회 시) |
+| **생성 시점** | Migration/Synchronize | 엔티티 로드 시마다 |
+| **where 절 사용** | ❌ (QueryBuilder는 ✅) | ❌ |
+| **직접 접근** | ❌ (SQL로만) | ✅ `restaurant.ownerId` |
+| **값 할당** | ❌ (ORM이 관리) | ✅ 직접 할당 가능 |
+
 ## 5. 실전 예시
 
 ### Restaurant Entity 전체 구조
@@ -361,5 +451,9 @@ export class Restaurant {
 - **`eager: true`**: Entity 정의에서 항상 자동 로드 설정
 - **`relations` 옵션**: 조회 시 명시적으로 로드할 관계 지정
 - **`loadEagerRelations`**: eager 관계 로드 여부 제어 (기본: true)
-- **`@RelationId`**: 관계 엔티티의 ID를 별도 프로퍼티로 노출 (외래키 값)
+- **`@RelationId`**: 
+  - 실제 DB의 FK 컬럼을 TypeScript 코드에서 접근 가능하게 매핑
+  - 엔티티 조회 시마다 자동으로 값이 채워짐
+  - TypeORM의 `where` 절에서는 사용 불가 (QueryBuilder는 가능)
+  - 성능 최적화에 유용 (JOIN 없이 ID 접근)
 

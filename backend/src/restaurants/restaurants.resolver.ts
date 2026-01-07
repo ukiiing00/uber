@@ -26,6 +26,10 @@ import {
 } from './dto/delete-restaurant.dto';
 import { AllCategoriesOutput } from './dto/all-categories.dto';
 import { Category } from './entities/category.entity';
+import { CategoryInput, CategoryOutput } from './dto/category.dto';
+import { RestaurantsInput, RestaurantsOutput } from './dto/restaurants.dto';
+import { RestaurantInput, RestaurantOutput } from './dto/restaurant.dto';
+import { SearchRestaurantInput, SearchRestaurantOutput } from './dto/search-restaurant.dto';
 
 @Resolver(() => Restaurant)
 export class RestaurantsResolver {
@@ -62,6 +66,18 @@ export class RestaurantsResolver {
       deleteRestaurantInput,
     );
   }
+  @Query(() => RestaurantsOutput)
+  restaurants(@Args() restaurantsInput: RestaurantsInput): Promise<RestaurantsOutput> {
+    return this.restaurantsService.allRestaurants(restaurantsInput);
+  }
+  @Query(() => RestaurantOutput)
+  restaurant(@Args() restaurantInput: RestaurantInput): Promise<RestaurantOutput> {
+    return this.restaurantsService.findRestaurantById(restaurantInput);
+  }
+  @Query(() => SearchRestaurantOutput)
+  searchRestaurant(@Args() searchRestaurantInput: SearchRestaurantInput): Promise<SearchRestaurantOutput> {
+    return this.restaurantsService.searchRestaurantByName(searchRestaurantInput);
+  }
 }
 
 @Resolver((of) => Category)
@@ -78,5 +94,10 @@ export class CategoriesResolver {
   @Query(() => AllCategoriesOutput)
   allCategories(): Promise<AllCategoriesOutput> {
     return this.restaurantsService.allCategories();
+  }
+
+  @Query(() => CategoryOutput)
+  category(@Args() categoryInput: CategoryInput): Promise<CategoryOutput> {
+    return this.restaurantsService.findCategoryBySlug(categoryInput);
   }
 }
