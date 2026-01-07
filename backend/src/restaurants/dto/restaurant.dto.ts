@@ -1,8 +1,8 @@
-import { Field, InputType, Int, ObjectType } from "@nestjs/graphql";
+import { ArgsType, Field, InputType, Int, ObjectType } from "@nestjs/graphql";
 import { Restaurant } from "../entities/restaurant.entity";
 import { CoreOutput } from "src/common/dto/output.dto";
 
-@InputType()
+@ArgsType()
 export class RestaurantInput {
     @Field(type => Int)
     restaurantId: number;
