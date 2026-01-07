@@ -15,7 +15,7 @@ import { User } from 'src/users/entities/user.entity';
 @ObjectType()
 @Entity()
 export class Restaurant extends CoreEntity {
-  @Field(() => String!)
+  @Field(() => String)
   @Column()
   @IsString()
   @Length(5)
@@ -37,6 +37,9 @@ export class Restaurant extends CoreEntity {
     onDelete: 'SET NULL',
   })
   category: Category;
+
+  @RelationId((restaurant: Restaurant) => restaurant.category)
+  categoryId: number;
 
   @Field(() => User)
   @ManyToOne(() => User, (user) => user.restaurants, { onDelete: 'CASCADE' })

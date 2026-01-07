@@ -14,6 +14,11 @@ import {
   EditRestaurantOutput,
 } from './dto/edit-restaurant.dto';
 import { CategoryRepository } from './repositories/category.repository';
+import {
+  DeleteRestaurantInput,
+  DeleteRestaurantOutput,
+} from './dto/delete-restaurant.dto';
+import { AllCategoriesOutput } from './dto/all-categories.dto';
 
 @Injectable()
 export class RestaurantsService {
@@ -21,6 +26,7 @@ export class RestaurantsService {
     @InjectRepository(Restaurant) // get the repository of the Restaurant entity
     private readonly restaurant: Repository<Restaurant>, // repository of the Restaurant entity
     @InjectRepository(Category)
+    private readonly categoryRepo: Repository<Category>,
     private readonly categories: CategoryRepository, // repository of the Category entity
   ) {}
 
@@ -71,5 +77,38 @@ export class RestaurantsService {
       ...(category && { category }),
     });
     return { ok: true };
+  }
+
+  async deleteRestaurant(
+    owner: User,
+    deleteRestaurantInput: DeleteRestaurantInput,
+  ): Promise<DeleteRestaurantOutput> {
+    const restaurant = await this.restaurant.findOne({
+      where: { id: deleteRestaurantInput.restaurantId },
+      loadEagerRelations: true,
+    });
+    if (!restaurant) {
+      return { ok: false, error: 'Restaurant not found.' };
+    }
+    if (restaurant.ownerId !== owner.id) {
+      return {
+        ok: false,
+        error: 'You are not allowed to delete this restaurant.',
+      };
+    }
+    await this.restaurant.delete(restaurant.id);
+    return { ok: true };
+  }
+
+  async allCategories(): Promise<AllCategoriesOutput> {
+    try {
+      const categories = await this.categoryRepo.find();
+      return { ok: true, categories };
+    } catch (error) {
+      return { ok: false, error: 'Could not load categories.' };
+    }
+  }
+  countRestaurants(category: Category) {
+    return this.restaurant.count({ where: { categoryId: category.id } });
   }
 }

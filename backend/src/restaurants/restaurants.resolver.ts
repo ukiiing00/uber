@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import {
+  Args,
+  Mutation,
+  Parent,
+  Query,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import { Restaurant } from './entities/restaurant.entity';
 import {
   CreateRestaurantInput,
@@ -13,6 +20,12 @@ import {
   EditRestaurantInput,
   EditRestaurantOutput,
 } from './dto/edit-restaurant.dto';
+import {
+  DeleteRestaurantInput,
+  DeleteRestaurantOutput,
+} from './dto/delete-restaurant.dto';
+import { AllCategoriesOutput } from './dto/all-categories.dto';
+import { Category } from './entities/category.entity';
 
 @Resolver(() => Restaurant)
 export class RestaurantsResolver {
@@ -36,5 +49,34 @@ export class RestaurantsResolver {
     @Args('input') editRestaurantInput: EditRestaurantInput,
   ): Promise<EditRestaurantOutput> {
     return this.restaurantsService.editRestaurant(owner, editRestaurantInput);
+  }
+
+  @Mutation(() => DeleteRestaurantOutput)
+  @Role(['Owner'])
+  deleteRestaurant(
+    @AuthUser() owner: User,
+    @Args('input') deleteRestaurantInput: DeleteRestaurantInput,
+  ): Promise<DeleteRestaurantOutput> {
+    return this.restaurantsService.deleteRestaurant(
+      owner,
+      deleteRestaurantInput,
+    );
+  }
+}
+
+@Resolver((of) => Category)
+export class CategoriesResolver {
+  constructor(private readonly restaurantsService: RestaurantsService) {}
+
+  @ResolveField(() => Number)
+  restaurantCount(@Parent() category: Category): Promise<number> {
+    // the reason why we use Promise<number> is because the countRestaurants method is async
+    // we don't use await because browser will wait for the promise to resolve before rendering the page
+    return this.restaurantsService.countRestaurants(category);
+  }
+
+  @Query(() => AllCategoriesOutput)
+  allCategories(): Promise<AllCategoriesOutput> {
+    return this.restaurantsService.allCategories();
   }
 }
