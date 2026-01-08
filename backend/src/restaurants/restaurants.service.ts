@@ -22,7 +22,14 @@ import { AllCategoriesOutput } from './dto/all-categories.dto';
 import { CategoryInput, CategoryOutput } from './dto/category.dto';
 import { RestaurantsInput, RestaurantsOutput } from './dto/restaurants.dto';
 import { RestaurantInput, RestaurantOutput } from './dto/restaurant.dto';
-import { SearchRestaurantInput, SearchRestaurantOutput } from './dto/search-restaurant.dto';
+import {
+  SearchRestaurantInput,
+  SearchRestaurantOutput,
+} from './dto/search-restaurant.dto';
+import { CreateDishInput, CreateDishOutput } from './dto/create-dish.dto';
+import { Dish } from './entities/dish.entity';
+import { DeleteDishInput, DeleteDishOutput } from './dto/delete-dish.dto';
+import { EditDishInput, EditDishOutput } from './dto/edit-dish.dto';
 
 @Injectable()
 export class RestaurantsService {
@@ -32,6 +39,8 @@ export class RestaurantsService {
     @InjectRepository(Category)
     private readonly categoryRepo: Repository<Category>,
     private readonly categories: CategoryRepository, // repository of the Category entity
+    @InjectRepository(Dish)
+    private readonly dishes: Repository<Dish>,
   ) {}
 
   async createRestaurant(
@@ -116,8 +125,11 @@ export class RestaurantsService {
     return this.restaurant.count({ where: { category: { id: category.id } } });
   }
 
-  async findCategoryBySlug({slug, page}: CategoryInput): Promise<CategoryOutput> {
-    try{
+  async findCategoryBySlug({
+    slug,
+    page,
+  }: CategoryInput): Promise<CategoryOutput> {
+    try {
       const category = await this.categoryRepo.findOne({
         where: { slug },
       });
@@ -129,50 +141,141 @@ export class RestaurantsService {
         skip: (page - 1) * 25,
         take: 25,
       });
-      const totalResults = await this.countRestaurants(category)
-      return { ok: true, restaurants, category, totalPages: Math.ceil(totalResults / 25) };
+      const totalResults = await this.countRestaurants(category);
+      return {
+        ok: true,
+        restaurants,
+        category,
+        totalPages: Math.ceil(totalResults / 25),
+      };
     } catch (error) {
       return { ok: false, error: 'Could not load category.' };
     }
   }
 
-
-  async allRestaurants({page}: RestaurantsInput): Promise<RestaurantsOutput> {
-    try{
+  async allRestaurants({ page }: RestaurantsInput): Promise<RestaurantsOutput> {
+    try {
       const [restaurants, totalResults] = await this.restaurant.findAndCount({
         skip: (page - 1) * 25,
         take: 25,
       });
-      return { ok: true, results: restaurants, totalResults: totalResults, totalPages: Math.ceil(totalResults / 25) };
+      return {
+        ok: true,
+        results: restaurants,
+        totalResults: totalResults,
+        totalPages: Math.ceil(totalResults / 25),
+      };
     } catch (error) {
       return { ok: false, error: 'Could not load restaurants.' };
     }
   }
 
-  async findRestaurantById({restaurantId}: RestaurantInput): Promise<RestaurantOutput> {
-    try{
-      const restaurant = await this.restaurant.findOne({ where: { id: restaurantId } });
+  async findRestaurantById({
+    restaurantId,
+  }: RestaurantInput): Promise<RestaurantOutput> {
+    try {
+      const restaurant = await this.restaurant.findOne({
+        where: { id: restaurantId },
+        relations: ['menu'],
+      });
       if (!restaurant) {
-        return { ok: false, error: 'Restaurant not found.'};
-
+        return { ok: false, error: 'Restaurant not found.' };
       }
       return { ok: true, restaurant: restaurant };
     } catch (error) {
-      return { ok: false, error: 'Could not load restaurant.'};
+      return { ok: false, error: 'Could not load restaurant.' };
     }
   }
 
-  async searchRestaurantByName({query, page}: SearchRestaurantInput): Promise<SearchRestaurantOutput> {
-    try{
+  async searchRestaurantByName({
+    query,
+    page,
+  }: SearchRestaurantInput): Promise<SearchRestaurantOutput> {
+    try {
       const [restaurants, totalResults] = await this.restaurant.findAndCount({
         where: { name: Like(`%${query}%`) },
         skip: (page - 1) * 25,
         take: 25,
       });
-      return { ok: true, restaurants, totalResults: totalResults, totalPages: Math.ceil(totalResults / 25) };
+      return {
+        ok: true,
+        restaurants,
+        totalResults: totalResults,
+        totalPages: Math.ceil(totalResults / 25),
+      };
     } catch (error) {
       return { ok: false, error: 'Could not search restaurants.' };
     }
   }
-}
 
+  async createDish(
+    owner: User,
+    createDishInput: CreateDishInput,
+  ): Promise<CreateDishOutput> {
+    try {
+      const restaurant = await this.restaurant.findOne({
+        where: { id: createDishInput.restaurantId },
+      });
+      if (!restaurant) {
+        return { ok: false, error: 'Restaurant not found.' };
+      }
+      if (restaurant.ownerId !== owner.id) {
+        return {
+          ok: false,
+          error: 'You are not allowed to create a dish for this restaurant.',
+        };
+      }
+      const newDish = this.dishes.create(createDishInput);
+      newDish.restaurant = restaurant;
+      await this.dishes.save(newDish);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: 'Could not create dish.' };
+    }
+  }
+  async deleteDish(
+    owner: User,
+    { dishId }: DeleteDishInput,
+  ): Promise<DeleteDishOutput> {
+    try {
+      const dish = await this.dishes.findOne({
+        where: { id: dishId },
+        relations: ['restaurant'],
+      });
+      if (!dish) {
+        return { ok: false, error: 'Dish not found.' };
+      }
+      if (dish.restaurant.ownerId !== owner.id) {
+        return { ok: false, error: 'You are not allowed to delete this dish.' };
+      }
+      await this.dishes.delete(dish.id);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: 'Could not delete dish.' };
+    }
+  }
+  async editDish(
+    owner: User,
+    editDishInput: EditDishInput,
+  ): Promise<EditDishOutput> {
+    try {
+      const dish = await this.dishes.findOne({
+        where: { id: editDishInput.dishId },
+        relations: ['restaurant'],
+      });
+      if (!dish) {
+        return { ok: false, error: 'Dish not found.' };
+      }
+      if (dish.restaurant.ownerId !== owner.id) {
+        return { ok: false, error: 'You are not allowed to edit this dish.' };
+      }
+      await this.dishes.save({
+        id: editDishInput.dishId,
+        ...editDishInput,
+      });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: 'Could not edit dish.' };
+    }
+  }
+}

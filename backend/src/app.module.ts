@@ -20,6 +20,7 @@ import { AuthModule } from './auth/auth.module';
 import { Verification } from './users/entities/verification.entity';
 import { MailModule } from './mail/mail.module';
 import { Category } from './restaurants/entities/category.entity';
+import { Dish } from './restaurants/entities/dish.entity';
 
 @Module({
   imports: [
@@ -60,7 +61,7 @@ import { Category } from './restaurants/entities/category.entity';
       logging:
         process.env.NODE_ENV !== 'production' &&
         process.env.NODE_ENV !== 'test', // logs will be shown in the console
-      entities: [Restaurant, User, Verification, Category],
+      entities: [Restaurant, User, Verification, Category, Dish],
     }),
     JwtModule.forRoot({
       privateKey: process.env.PRIVATE_KEY!,
